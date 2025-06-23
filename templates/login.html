@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - StreamHibV4</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-lg p-6 sm:p-8 max-w-md w-full" x-data="loginForm()">
+        <div class="text-center mb-6 sm:mb-8">
+            <img src="/static/logostreamhib.png" alt="StreamHib Logo" class="mx-auto mb-4 h-12 sm:h-16">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-2">Login to StreamHibV4</h1>
+            <p class="text-gray-600 text-sm sm:text-base">Enter your credentials to access the dashboard</p>
+        </div>
+
+        <form @submit.prevent="handleLogin" class="space-y-4 sm:space-y-6">
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                </label>
+                <input type="email" id="email" x-model="email" required
+                       class="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm sm:text-base"
+                       placeholder="your-email@example.com">
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                    Password
+                </label>
+                <input type="password" id="password" x-model="password" required minlength="6"
+                       class="w-full px-3 sm:px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition duration-200 text-sm sm:text-base"
+                       placeholder="Your password">
+            </div>
+
+            <button type="submit" id="submitBtn" :disabled="loading"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 sm:py-3 px-4 rounded-lg transition duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-sm sm:text-base disabled:opacity-50 disabled:cursor-not-allowed">
+                <span x-show="!loading">Login</span>
+                <span x-show="loading">Logging in...</span>
+            </button>
+        </form>
+
+        <div id="message" x-show="message" :class="messageType === 'error' ? 'bg-red-100 text-red-700 border border-red-200' : 'bg-green-100 text-green-700 border border-green-200'" class="mt-4 p-3 sm:p-4 rounded-lg" x-text="message"></div>
+
+        <div class="mt-6 sm:mt-8 text-center text-gray-600 text-sm">
+            <a href="/forgot-password" class="text-blue-600 hover:underline">Forgot password?</a>
+            <p class="mt-2">Don't have an account? <a href="/" class="text-blue-600 hover:underline">Register here</a></p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('loginForm', () => ({
+                email: '',
+                password: '',
+                message: '',
+                messageType: '', // 'success' or 'error'
+                loading: false,
+
+                async handleLogin() {
+                    this.message = '';
+                    this.loading = true;
+
+                    try {
+                        const response = await fetch('/api/auth/login', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ email: this.email, password: this.password })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            this.messageType = 'success';
+                            this.message = 'Login successful! Redirecting...';
+                            // No need to store token in localStorage, it's in HTTP-only cookie
+                            // localStorage.setItem('token', data.token); // Remove this line
+                            const urlParams = new URLSearchParams(window.location.search);
+                            const nextUrl = urlParams.get('next') || '/';
+                            setTimeout(() => { window.location.href = nextUrl; }, 1000);
+                        } else {
+                            this.messageType = 'error';
+                            this.message = data.message || 'Login failed.';
+                        }
+                    } catch (error) {
+                        this.messageType = 'error';
+                        this.message = 'Network error. Please try again.';
+                        console.error('Login error:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            }));
+        });
+    </script>
+</body>
+</html>
